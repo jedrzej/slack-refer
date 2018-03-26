@@ -2,17 +2,12 @@
 node_modules
 jspm_packages
 
-# Serverless directories
-.serverless
-
 # IDE
 .idea
+.vscode
 
 # Build files
 .webpack
 build
-
-# Configuration
-serverless.env.yml
 
 # Other
