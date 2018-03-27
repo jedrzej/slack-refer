@@ -1,30 +1,40 @@
 const _ = require('lodash');
 
-function generateErrorResponse(text) {
-  return {
-        "attachments": [
-            {
-                "fallback": text,
-                "color": "danger",
-                "text": text
-            }
-        ]
-    }
-}
-
-function generateSuccessResponse(text) {
-  return {
-    "attachments": [
-      {
-        "fallback": text,
-        "color": "good",
-        "text": text
-      }
-    ]
-  };
-}
-
 module.exports = function (ctx, done) {
+  switch(ctx.body.command) {
+    case '/referral-app-add': 
+      return appAdd(ctx, done);
+    case '/referral-app-list': 
+      return appList(ctx, done);
+  }
+  
+  return done(null, generateErrorResponse("Unknown command."));
+};
+
+function appList(ctx, done) {
+  ctx.storage.get(function (error, data) {
+    data = data || { applications: [] };
+    const applications = ctx.body.text ? _.filter(data.applications, function(app) {
+      return app.name.toLowerCase().includes(ctx.body.text.toLowerCase());
+    }) : data.applications;
+    
+    if (!applications.length) {
+      return done(null, generateSuccessResponse("There are no applications yet. Use */referral-app-add* to add an application."));
+    }
+    
+    const response = { attachments: applications.map(function(app) {
+      return {
+        "fallback": app.name,
+        "color": "good",
+        "text": app.name
+      };
+    })};
+    
+    return done(null, response);
+  });
+}
+
+function appAdd(ctx,done) {
   if (!ctx.body.text) {
     return done(null, generateErrorResponse("Application name is required."));
   }
@@ -32,10 +42,7 @@ module.exports = function (ctx, done) {
   const name = ctx.body.text;
   
   ctx.storage.get(function (error, data) {
-    if (error) return cb(error);
     data = data || { applications: [] };
-    
-    console.log(data, name, _.find(data.applications, app => app.name === name));
     
     if (_.find(data.applications, app => app.name === name)) {
       return done(null, generateErrorResponse("Application with given name already exists."));
@@ -59,4 +66,28 @@ module.exports = function (ctx, done) {
       return done(null, generateSuccessResponse(`Application "${name}" was added.`));
     });
   });
-};
+}
+
+function generateErrorResponse(text) {
+  return {
+        "attachments": [
+            {
+                "fallback": text,
+                "color": "danger",
+                "text": text
+            }
+        ]
+    }
+}
+
+function generateSuccessResponse(text) {
+  return {
+    "attachments": [
+      {
+        "fallback": text,
+        "color": "good",
+        "text": text
+      }
+    ]
+  };
+}
